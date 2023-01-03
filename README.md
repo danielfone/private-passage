@@ -28,8 +28,7 @@ using the secret key that was shared via the private link.
 
 Too often, sensitive data is shared over insecure channels like Slack, MS Teams,
 or email. These messages are not encrypted, and even if they are subsequently
-deleted, notification emails may have been sent that including the secret — this
-has happened to me more than once!
+deleted, notification emails may have been sent that included the secret.
 
 Furthermore, while many password managers support sharing passwords, the process
 is much more cumbersome and I occasionally need to share sensitive data with
