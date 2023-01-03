@@ -1,0 +1,31 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    eventmachine (1.2.7)
+    faye-websocket (0.11.1)
+      eventmachine (>= 0.12.0)
+      websocket-driver (>= 0.5.1)
+    nio4r (2.5.8)
+    puma (6.0.0)
+      nio4r (~> 2.0)
+    rack (3.0.2)
+    rackup (0.2.3)
+      rack (>= 3.0.0.beta1)
+      webrick
+    webrick (1.7.0)
+    websocket-driver (0.7.5)
+      websocket-extensions (>= 0.1.0)
+    websocket-extensions (0.1.5)
+
+PLATFORMS
+  arm64-darwin-21
+  x86_64-linux
+
+DEPENDENCIES
+  faye-websocket (~> 0.11.1)
+  puma (~> 6.0)
+  rack (~> 3.0)
+  rackup (~> 0.2.3)
+
+BUNDLED WITH
+   2.3.23
