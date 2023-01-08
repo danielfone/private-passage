@@ -230,6 +230,13 @@
         }
       }
 
+      // If there is no plaintext or files, we have nothing to send
+      if (!plaintext && files.length === 0) {
+        alert("Please enter a secret or select a file to share.")
+        resetSendForm()
+        return
+      }
+
       const payload = JSON.stringify({ plaintext, files });
 
       // Generate a random base63 encoded ID for our channel. We also use this
