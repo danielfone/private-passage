@@ -1,4 +1,3 @@
-# Via Chat GPT
 require 'rack'
 require_relative 'relay_server'
 
