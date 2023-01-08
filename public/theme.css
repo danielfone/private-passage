@@ -88,6 +88,7 @@ input[type=submit] {
   border: none;
   color: var(--accent-text-color);
   cursor: pointer;
+  font-size: larger;
 }
 
 /* Buttons are secondary */
