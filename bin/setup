@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Set bash to strict mode
+set -euo pipefail
+
+# Exit with a message
+fail() { echo "$@"; exit -1; }
+
+# Check our dependencies exist
+command -v ruby >/dev/null 2>&1 || fail "ERROR: Could not find ruby"
+
+bundle check || bundle install
