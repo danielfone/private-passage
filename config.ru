@@ -1,5 +1,7 @@
 require 'rack'
 require_relative 'appsignal'
+require_relative 'middleware/error_handling'
+require_relative 'middleware/request_logger'
 require_relative 'relay_server'
 
 # Generic middlware to run a proc before the request
@@ -15,6 +17,10 @@ class Middleware
   end
 end
 
+# Log all requests
+use RequestLogger
+# Rescue and log all errors and respond with a 500
+use ErrorHandling
 # Use Appsignal to instrument the request and report errors
 use Appsignal::Rack::GenericInstrumentation
 
