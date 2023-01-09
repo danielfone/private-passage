@@ -1,7 +1,7 @@
 require 'faye/websocket'
 
 #
-# Rack middleware that handles WebSocket connections for a relay server.
+# Rack app that handles WebSocket connections for a relay server.
 #
 # The relay server is responsible for relaying messages between clients
 # connected to the same channel. Since the channel is managed in memory, it is
@@ -15,8 +15,7 @@ require 'faye/websocket'
 class RelayServer
   KEEPALIVE_TIME = 15 # in seconds
 
-  def initialize(app)
-    @app = app
+  def initialize
     # Map of channels, keyed by channel ID
     @channels = {}
   end
@@ -25,7 +24,8 @@ class RelayServer
     if Faye::WebSocket.websocket?(env)
       initialize_connection(env)
     else
-      @app.call(env)
+      # Bad request
+      [400, {}, ["Not a WebSocket request"]]
     end
   end
 
@@ -122,7 +122,7 @@ private
 
   # Log a message with key/value attributes
   def log(message, attrs = {})
-    attr_list = attrs.map { |k, v| "#{k}=#{v}" }.join(' ')
+    attr_list = JSON.generate(attrs) if attrs.any?
     puts "#{message} #{attr_list}"
   end
 

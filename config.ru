@@ -6,9 +6,16 @@ if ENV['APPSIGNAL_PUSH_API_KEY']
   use Appsignal::Rack::GenericInstrumentation
 end
 
-use RelayServer
+# Serve the websocket
+map('/ws') do
+  run RelayServer.new
+end
+
 # Serve a simple health check
-map('/ok') { run lambda { |_env| [204, {}, []] } }
-# Serve static files
+map('/ok') do
+  run lambda { |_env| [204, {}, []] }
+end
+
+# Fallback to serving static files
 use Rack::Static, root: 'public', urls: ['/'], index: 'index.html'
 run lambda { |_env| [404, {}, ['Not Found']] }
