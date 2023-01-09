@@ -36,7 +36,7 @@ private
     client_id = ws.object_id
 
     # Log the origin of the connection
-    log "New connection", origin: ws.env['HTTP_ORIGIN'], client_id:
+    log("New connection", origin: ws.env['HTTP_ORIGIN'], client_id:)
 
     # Parse the client ID from the query string
     query = Rack::Utils.parse_query(env['QUERY_STRING'])
@@ -48,7 +48,7 @@ private
     # Close the connection if the channel ID is missing
     if channel_id.nil? || channel_id.empty?
       ws.close(4000, 'Channel ID is required')
-      log "Invalid connection, missing channel_id", client_id: client_id
+      log("Invalid connection, missing channel_id", client_id: client_id)
       return ws.rack_response
     end
 
@@ -77,25 +77,25 @@ private
   def create_channel(channel_id, ws)
     if @channels.key?(channel_id)
       ws.close(4000, 'Channel already open')
-      log "Channel already open", channel_id:, client_id: ws.object_id
+      log("Channel already open", channel_id:, client_id: ws.object_id)
       return
     end
 
     @channels[channel_id] = Set.new
     @channels[channel_id] << ws
-    log "Opened channel", channel_id:, client_id: ws.object_id
+    log("Opened channel", channel_id:, client_id: ws.object_id)
   end
 
   # Add a client to an existing channel
   def add_client(channel_id, ws)
     if !@channels.key?(channel_id)
       ws.close(4000, 'Channel not found')
-      log "Channel not found", channel_id:, client_id: ws.object_id
+      log("Channel not found", channel_id:, client_id: ws.object_id)
       return
     end
 
     @channels[channel_id] << ws
-    log "Connected to channel", channel_id:, client_id: ws.object_id
+    log("Connected to channel", channel_id:, client_id: ws.object_id)
   end
 
   # Relay a message to all clients in a channel except the sender
@@ -112,11 +112,11 @@ private
     return unless channel
 
     channel.delete(ws)
-    log "Closed connection", channel_id:, client_id: ws.object_id
+    log("Closed connection", channel_id:, client_id: ws.object_id)
 
     if channel.empty?
       @channels.delete(channel_id)
-      log "Closed channel", channel_id:
+      log("Closed channel", channel_id:)
     end
   end
 
