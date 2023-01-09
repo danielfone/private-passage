@@ -1,7 +1,11 @@
 require 'rack'
 require_relative 'relay_server'
 
-use Rack::CommonLogger
+if ENV['APPSIGNAL_PUSH_API_KEY']
+  require_relative 'appsignal'
+  use Appsignal::Rack::GenericInstrumentation
+end
+
 use RelayServer
 # Serve a simple health check
 map('/ok') { run lambda { |_env| [204, {}, []] } }

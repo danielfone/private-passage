@@ -1,6 +1,8 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    appsignal (3.3.0)
+      rack
     eventmachine (1.2.7)
     faye-websocket (0.11.1)
       eventmachine (>= 0.12.0)
@@ -22,6 +24,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  appsignal (~> 3.3)
   faye-websocket (~> 0.11.1)
   puma (~> 6.0)
   rack (~> 3.0)

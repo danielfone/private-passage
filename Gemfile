@@ -9,3 +9,5 @@ gem "faye-websocket", "~> 0.11.1"
 gem "rackup", "~> 0.2.3"
 
 gem "puma", "~> 6.0"
+
+gem "appsignal", "~> 3.3"
