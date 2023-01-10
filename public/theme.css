@@ -140,6 +140,7 @@ a:active {
 
 footer {
   border-top: 1px solid var(--border-color);
+  font-size: smaller;
   margin: 3rem 0;
   opacity: 0.5;
   padding: 1rem 0;

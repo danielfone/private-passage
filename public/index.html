@@ -111,6 +111,11 @@
     </section>
   </noscript>
   <footer>
+    For your privacy, there is no error reporting or analytics on this page. If
+    something goes wrong, or you have any questions or feedback, please email
+    <a data-mailto-user="hello" data-mailto-domain="privatepassage.io"></a>.
+    <br>
+    <br>
     Crafted with care by <a href="https://daniel.fone.net.nz">Daniel Fone</a>.<br>
     Made in New Zealand.
   </footer>
@@ -454,6 +459,14 @@
       li.appendChild(a);
       fileLinks.appendChild(li);
     }
+  </script>
+  <script>
+    // Unobfuscate the email address using the data-mailto-* attributes
+    document.querySelectorAll("a[data-mailto-user]").forEach(a => {
+      const address = a.dataset.mailtoUser + "@" + a.dataset.mailtoDomain;
+      a.href = "mailto:" + address;
+      a.innerText = address;
+    });
   </script>
 </body>
 
