@@ -155,10 +155,13 @@
     if (window.location.search) {
       // If there is a query string, we are in the recipient's browser
       receiveContainer.hidden = false;
-      // TODO: Error handling
       const channelId = new URLSearchParams(window.location.search).get("id");
       const key = window.location.hash.slice(1);
-      connectAndDecrypt(channelId, key);
+      if (channelId && key) {
+        connectAndDecrypt(channelId, key);
+      } else {
+        receiveStatusMessage.textContent = "Invalid link. Please check the link and try again.";
+      }
     } else {
       // Otherwise, we are in the sender's browser
       sendContainer.hidden = false;
