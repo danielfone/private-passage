@@ -30,11 +30,23 @@
     }
 
     .how-it-works {
-      /* background-color: #ccc5; */
       opacity: 0.7;
       font-size: smaller;
       margin: 2rem 0;
-      /* padding: 1px 1rem; */
+    }
+
+  </style>
+  <!-- Simple feature detection with nomodule to notify browsers that don't support ES6 -->
+  <script>document.documentElement.classList.add('js');</script>
+  <script nomodule>document.documentElement.classList.remove('js');</script>
+  <style>
+    .js #incompatibility-warning {
+      display: none;
+    }
+
+    #incompatibility-warning {
+      background-color: #f003;
+      padding: 1rem;
     }
 
   </style>
@@ -45,6 +57,9 @@
     <h1>Private Passage</h1>
     <p>Real-time, Encrypted Secret Sharing</p>
   </header>
+  <section id="incompatibility-warning">
+    Sorry, a browser supporting modern JavaScript is required to use this application.
+  </section>
   <main id="send-container" hidden>
     <p>
       Privately share confidential documents, credentials, API keys, and other
@@ -101,15 +116,6 @@
       of this static page wherever you like. The source code is available on
       <a href="https://github.com/danielfone/private-passage">GitHub</a>.
   </div>
-  <section id="incompatibility-warning" hidden>
-    Your browser does not support the Web Crypto API. Please use a modern browser.
-  </section>
-  <noscript>
-    <section>
-      <h2>JavaScript is required</h2>
-      <p>Private Passage requires JavaScript to function. Please enable JavaScript in your browser.</p>
-    </section>
-  </noscript>
   <footer>
     For your privacy, there is no error reporting or analytics on this page. If
     something goes wrong, or you have any questions or feedback, please email
@@ -120,7 +126,7 @@
     Made in New Zealand.
   </footer>
 
-  <script>
+  <script type="module">
     const MAX_FILE_SIZE = 64 * 1024 * 1024; // 64 MiB
     const WEBSOCKET_URL = "wss://privatepassage.io/ws"
     // For development
@@ -128,7 +134,6 @@
 
     const sendContainer = document.getElementById("send-container");
     const receiveContainer = document.getElementById("receive-container");
-    const incompatibilityWarning = document.getElementById("incompatibility-warning");
     const generateButton = document.getElementById("generate-button");
     const cancelButton = document.getElementById("cancel-button");
     const sendStatusMessage = document.getElementById("send-status-message");
@@ -147,10 +152,7 @@
     // Initialization
     //
 
-    // Test if the browser supports the Web Crypto API
-    if (!window.crypto || !window.crypto.subtle) {
-      incompatibilityWarning.hidden = false;
-    } else if (window.location.search) {
+    if (window.location.search) {
       // If there is a query string, we are in the recipient's browser
       receiveContainer.hidden = false;
       // TODO: Error handling
@@ -445,7 +447,9 @@
     }
 
     async function addDownloadLink(name, dataURL) {
-      // Convert dataURL to blob using fetch O_o. I still can't believe this works.
+      // Convert dataURL to blob using fetch. Works for all browsers supporting
+      // ES6 modules except Edge 16-18. Sorry if you're one of those 0.02%, but
+      // 2018 was a long time ago.
       const file = await fetch(dataURL).then(r => r.blob());
 
       // Create a link to download the file
