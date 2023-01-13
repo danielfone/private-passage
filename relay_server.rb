@@ -35,9 +35,6 @@ private
     websocket = Faye::WebSocket.new(env, nil, { ping: KEEPALIVE_TIME })
     client_id = websocket.object_id
 
-    # Log the origin of the connection
-    log("New connection", origin: websocket.env['HTTP_ORIGIN'], client_id:)
-
     # Parse the client ID from the query string
     query = Rack::Utils.parse_query(env['QUERY_STRING'])
     # Channel ID
@@ -48,11 +45,10 @@ private
     # Close the connection if the channel ID is missing
     if channel_id.nil? || channel_id.empty?
       websocket.close(4000, 'Channel ID is required')
-      log("Invalid connection, missing channel_id", client_id: client_id)
-      return websocket.rack_response
     end
 
-    websocket.on :open do
+    websocket.on :open do |event|
+      log('Websocket opened', client_id:, channel_id:)
       if existing
         add_client(channel_id, websocket)
       else
@@ -61,10 +57,12 @@ private
     end
 
     websocket.on :message do |event|
+      log('Websocket messaged', client_id:, channel_id:, size_bytes: event.data.size)
       relay_message(channel_id, websocket, event.data)
     end
 
-    websocket.on :close do
+    websocket.on :close do |event|
+      log("Websocket closed", client_id:, channel_id:, code: event.code, reason: event.reason)
       remove_client(channel_id, websocket)
       websocket = nil # Allow websocket to be garbage collected
     end
@@ -77,25 +75,21 @@ private
   def create_channel(channel_id, websocket)
     if @channels.key?(channel_id)
       websocket.close(4000, 'Channel already open')
-      log("Channel already open", channel_id:, client_id: websocket.object_id)
       return
     end
 
     @channels[channel_id] = Set.new
     @channels[channel_id] << websocket
-    log("Opened channel", channel_id:, client_id: websocket.object_id)
   end
 
   # Add a client to an existing channel
   def add_client(channel_id, websocket)
     if !@channels.key?(channel_id)
       websocket.close(4000, 'Channel not found')
-      log("Channel not found", channel_id:, client_id: websocket.object_id)
       return
     end
 
     @channels[channel_id] << websocket
-    log("Connected to channel", channel_id:, client_id: websocket.object_id)
   end
 
   # Relay a message to all clients in a channel except the sender
@@ -112,11 +106,9 @@ private
     return unless channel
 
     channel.delete(websocket)
-    log("Closed connection", channel_id:, client_id: websocket.object_id)
 
     if channel.empty?
       @channels.delete(channel_id)
-      log("Closed channel", channel_id:)
     end
   end
 

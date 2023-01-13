@@ -19,13 +19,16 @@ class RequestLogger
     status, _headers, _body = @app.call(env)
   ensure
     finish = monotonic_time
+    duration = (finish - start).round(3)
     # Log the request
     log(
-      "Processed request",
+      "HTTP response #{status} #{duration}ms #{env['REQUEST_METHOD']} #{env['REQUEST_URI']}",
+      type: :http_request,
       method: env['REQUEST_METHOD'],
-      path: env['REQUEST_URI'],
+      path: env['REQUEST_PATH'],
       status: status,
-      duration_ms: (finish - start).round(3),
+      duration_ms: duration,
+      origin: env['HTTP_ORIGIN'],
     )
   end
 
@@ -39,7 +42,7 @@ private
 
 
   def log(message, attrs = {})
-    attr_json = JSON.generate(attrs) unless attrs.empty?
+    attr_json = JSON.generate(attrs.compact) unless attrs.empty?
     puts "#{message} #{attr_json}"
   end
 end
