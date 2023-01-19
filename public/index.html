@@ -251,7 +251,7 @@
 
       const payload = JSON.stringify({ plaintext, files });
 
-      // Generate a random base63 encoded ID for our channel. We also use this
+      // Generate a random base36 encoded ID for our channel. We also use this
       // as the IV for the encryption. This is not a security risk, since the IV
       // is not secret.
       const id = Array.from(crypto.getRandomValues(new Uint32Array(4)), b => b.toString(36)).join('')
