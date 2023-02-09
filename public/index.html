@@ -260,7 +260,7 @@
       const { cipherBytes, key } = await encrypt(id, payload)
 
       sendStatusMessage.innerText = "Relaying message..."
-      relayMessage(id, cipherBytes, {
+      const ws = relayMessage(id, cipherBytes, {
         onOpen: (ws) => {
           const url = window.location.origin + `?id=${id}#${key}`
           sendStatusMessage.innerText = 'Waiting for recipients...';
@@ -284,6 +284,14 @@
           sendStatusMessage.innerText = `Error: ${event.reason || "Disconnected"}`
           resetSendForm()
         },
+      })
+
+      // When the user closes the tab, confirm they want to stop sharing if the websocket is active
+      window.addEventListener("beforeunload", (event) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          event.preventDefault();
+          event.returnValue = ""; // Browsers will show a default message, no matter what we return
+        }
       })
     }
 
