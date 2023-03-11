@@ -80,6 +80,7 @@
         <button data-copy-target="share-link-input">Copy</button>
       </div>
       <button id="cancel-button" hidden>Stop Sharing</button>
+      <button id="reconnect-button" hidden>Reconnect</button>
     </div>
   </main>
   <main id="receive-container" hidden>
@@ -136,6 +137,7 @@
     const receiveContainer = document.getElementById("receive-container");
     const generateButton = document.getElementById("generate-button");
     const cancelButton = document.getElementById("cancel-button");
+    const reconnectButton = document.getElementById("reconnect-button");
     const sendStatusMessage = document.getElementById("send-status-message");
     const receiveStatusMessage = document.getElementById("receive-status-message");
     const textarea = document.getElementById("plaintext");
@@ -259,8 +261,22 @@
       sendStatusMessage.innerText = "Encrypting message..."
       const { cipherBytes, key } = await encrypt(id, payload)
 
+      // Setup the websocket connection
+      const ws = configureRelay(id, cipherBytes, key)
+
+      // When the user closes the tab, confirm they want to stop sharing if the websocket is active
+      window.addEventListener("beforeunload", (event) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          event.preventDefault();
+          event.returnValue = ""; // Browsers will show a default message, no matter what we return
+        }
+      })
+    }
+
+    async function configureRelay(id, cipherBytes, key) {
+      reconnectButton.hidden = true;
       sendStatusMessage.innerText = "Relaying message..."
-      const ws = relayMessage(id, cipherBytes, {
+      return relayMessage(id, cipherBytes, {
         onOpen: (ws) => {
           const url = window.location.origin + `?id=${id}#${key}`
           sendStatusMessage.innerText = 'Waiting for recipients...';
@@ -281,23 +297,18 @@
           resetSendForm()
         },
         onFailure: (event) => {
-          sendStatusMessage.innerText = `Error: ${event.reason || "Disconnected"}`
-          resetSendForm()
+          sendStatusMessage.innerText = `⚠️ Error: ${event.reason || "Disconnected"}`
+          cancelButton.onclick = () => resetSendForm();
+          reconnectButton.hidden = false;
+          reconnectButton.onclick = () => configureRelay(id, cipherBytes, key);
         },
-      })
-
-      // When the user closes the tab, confirm they want to stop sharing if the websocket is active
-      window.addEventListener("beforeunload", (event) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          event.preventDefault();
-          event.returnValue = ""; // Browsers will show a default message, no matter what we return
-        }
       })
     }
 
     function resetSendForm() {
       linkStatusMessage.hidden = true;
       cancelButton.hidden = true;
+      reconnectButton.hidden = true;
       generateButton.disabled = false
       textarea.disabled = false
       fileInput.disabled = false
