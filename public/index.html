@@ -35,6 +35,47 @@
       margin: 2rem 0;
     }
 
+    span.indicator {
+      display: inline-block;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      margin-left: 0.5rem;
+    }
+
+    span.indicator.waiting {
+      animation: slow-pulse 2s ease-out infinite;
+      background: currentColor;
+    }
+
+    @keyframes slow-pulse {
+      0% {
+        transform: scale(0);
+        opacity: 1;
+      }
+
+      100% {
+        transform: scale(2);
+        opacity: 0;
+      }
+    }
+
+    span.indicator.loading {
+      animation: spin 1s linear infinite;
+      border: 2px solid;
+      border-color: currentColor transparent;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
   </style>
   <!-- Simple feature detection with nomodule to notify browsers that don't support ES6 -->
   <script>document.documentElement.classList.add('js');</script>
@@ -275,11 +316,11 @@
 
     async function configureRelay(id, cipherBytes, key) {
       reconnectButton.hidden = true;
-      sendStatusMessage.innerText = "Relaying message..."
+      sendStatusMessage.innerHTML = "Connecting to relay... <span class='loading indicator'></span>"
       return relayMessage(id, cipherBytes, {
         onOpen: (ws) => {
           const url = window.location.origin + `?id=${id}#${key}`
-          sendStatusMessage.innerText = 'Waiting for recipients...';
+          sendStatusMessage.innerHTML = 'Waiting for recipients... <span class="waiting indicator"></span>';
           cancelButton.hidden = false;
           cancelButton.onclick = () => ws.close(1000, "DONE");
           shareLink.href = url;
@@ -287,13 +328,13 @@
           linkStatusMessage.hidden = false;
         },
         onPeerReady: () => {
-          sendStatusMessage.innerText = "Connected to recipient, sending file..."
+          sendStatusMessage.innerHTML = "Connected to recipient, sending file... <span class='loading indicator'></span>"
         },
         onPeerReceived: () => {
-          sendStatusMessage.innerText = 'Sent! Waiting for recipients...';
+          sendStatusMessage.innerHTML = 'Sent! 🚀 Waiting for recipients...<span class="waiting indicator"></span> ';
         },
         onFinish: () => {
-          sendStatusMessage.innerText = "Done!"
+          sendStatusMessage.innerHTML = "Done!"
           resetSendForm()
         },
         onFailure: (event) => {
