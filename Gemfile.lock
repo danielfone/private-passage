@@ -10,7 +10,7 @@ GEM
     nio4r (2.5.8)
     puma (6.0.0)
       nio4r (~> 2.0)
-    rack (3.0.2)
+    rack (3.0.4.2)
     rackup (0.2.3)
       rack (>= 3.0.0.beta1)
       webrick
