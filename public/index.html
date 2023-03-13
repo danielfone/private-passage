@@ -170,9 +170,10 @@
 
   <script type="module">
     const MAX_FILE_SIZE = 64 * 1024 * 1024; // 64 MiB
-    const WEBSOCKET_URL = "wss://relay.privatepassage.io/ws"
+    // const WEBSOCKET_URL = "wss://relay.privatepassage.io/ws"
     // For development
     // const WEBSOCKET_URL = window.location.protocol.replace("http", "ws") + "//" + window.location.host + "/ws";
+    const WEBSOCKET_ORIGIN = "wss://proud-moth-14.deno.dev"
 
     const sendContainer = document.getElementById("send-container");
     const receiveContainer = document.getElementById("receive-container");
@@ -268,31 +269,35 @@
       textarea.disabled = true
       fileInput.disabled = true
 
+      const messages = []
+
       const plaintext = textarea.value
+      if (plaintext) messages.push(JSON.stringify({ plaintext }));
 
       // Read files from the file input
-      const files = []
       if (fileInput.files.length > 0) {
         sendStatusMessage.innerText = "Preparing files..."
 
         for (const file of fileInput.files) {
           const fileDataURL = await readFileAsDataURL(file)
 
-          files.push({
-            name: file.name,
-            dataURL: fileDataURL,
-          })
+          messages.push(
+            JSON.stringify({
+              file: {
+                name: file.name,
+                dataURL: fileDataURL,
+              }
+            })
+          )
         }
       }
 
       // If there is no plaintext or files, we have nothing to send
-      if (!plaintext && files.length === 0) {
+      if (messages.length === 0) {
         alert("Please enter a secret or select a file to share.")
         resetSendForm()
         return
       }
-
-      const payload = JSON.stringify({ plaintext, files });
 
       // Generate a random base36 encoded ID for our channel. We also use this
       // as the IV for the encryption. This is not a security risk, since the IV
@@ -300,10 +305,10 @@
       const id = Array.from(crypto.getRandomValues(new Uint32Array(4)), b => b.toString(36)).join('')
 
       sendStatusMessage.innerText = "Encrypting message..."
-      const { cipherBytes, key } = await encrypt(id, payload)
+      const { encryptedMessages, key } = await encrypt(id, messages)
 
       // Setup the websocket connection
-      const ws = configureRelay(id, cipherBytes, key)
+      const ws = configureRelay(id, encryptedMessages, key)
 
       // When the user closes the tab, confirm they want to stop sharing if the websocket is active
       window.addEventListener("beforeunload", (event) => {
@@ -314,10 +319,10 @@
       })
     }
 
-    async function configureRelay(id, cipherBytes, key) {
+    async function configureRelay(id, encryptedMessages, key) {
       reconnectButton.hidden = true;
       sendStatusMessage.innerHTML = "Connecting to relay... <span class='loading indicator'></span>"
-      return relayMessage(id, cipherBytes, {
+      return relayMessages(id, encryptedMessages, {
         onOpen: (ws) => {
           const url = window.location.origin + `?id=${id}#${key}`
           sendStatusMessage.innerHTML = 'Waiting for recipients... <span class="waiting indicator"></span>';
@@ -341,7 +346,7 @@
           sendStatusMessage.innerText = `⚠️ Error: ${event.reason || "Disconnected"}`
           cancelButton.onclick = () => resetSendForm();
           reconnectButton.hidden = false;
-          reconnectButton.onclick = () => configureRelay(id, cipherBytes, key);
+          reconnectButton.onclick = () => configureRelay(id, encryptedMessages, key);
         },
       })
     }
@@ -360,17 +365,17 @@
     // decrypts the data.
     //
     async function connectAndDecrypt(channelId, key) {
-      receiveStatusMessage.innerText = "Connecting..."
+      receiveStatusMessage.innerHTML = "Connecting... <span class='loading indicator'></span>"
 
-      receiveMessage(channelId, {
+      receiveMessages(channelId, {
         onOpen: () => {
-          receiveStatusMessage.innerText = "Connected to server, receiving file..."
+          receiveStatusMessage.innerHTML = "Connected! Waiting for message... <span class='waiting indicator'></span>"
         },
-        onSuccess: async (data) => {
-          receiveStatusMessage.innerText = "Decrypting..."
+        onReceive: async (data) => {
+          receiveStatusMessage.innerHTML = "Decrypting message... <span class='loading indicator'></span>"
           const cipherBytes = await data.arrayBuffer()
           const jsonPayload = await decrypt(channelId, cipherBytes, key);
-          const { plaintext, files } = JSON.parse(jsonPayload);
+          const { plaintext, file } = JSON.parse(jsonPayload);
 
           if (plaintext) {
             receiveTextarea.value = plaintext;
@@ -378,14 +383,16 @@
             blurInput(receiveTextarea);
           }
 
-          files.forEach(file => addDownloadLink(file.name, file.dataURL))
-          if (files.length > 0) {
+          if (file) {
+            addDownloadLink(file.name, file.dataURL);
             downloads.hidden = false;
           }
+        },
+        onSuccess: () => {
           receiveStatusMessage.innerText = "Transfer complete!"
         },
         onFailure: (event) => {
-          receiveStatusMessage.innerText = `Error: ${event.reason || "Disconnected"}`
+          receiveStatusMessage.innerText = `⚠️ Error: ${event.reason || "Disconnected"}`
         },
       })
     }
@@ -407,22 +414,27 @@
     // Encrypt the plaintext using AES-GCM and the supplied Initialization
     // Vector. Returns the encrypted bytes and the key used to encrypt the
     // plaintext.
-    async function encrypt(iv, plaintext) {
-      // Convert the plaintext to a binary buffer to be encrypted
-      const plainBytes = encoder.encode(plaintext);
-
+    async function encrypt(iv, messages) {
       // Generate a random AES key
       const aesKey = await crypto.subtle.generateKey({ name: AES_MODE, length: AES_KEY_LENGTH }, true, ['encrypt'])
       const keyBytes = await crypto.subtle.exportKey("raw", aesKey)
 
-      // Encrypt the plaintext with the AES key
-      const cipherBytes = await crypto.subtle.encrypt(
-        { name: AES_MODE, iv: encoder.encode(iv) },
-        aesKey,
-        plainBytes
-      );
+      const encryptedMessages = []
 
-      return { key: bytesToHex(keyBytes), cipherBytes };
+      for (const message of messages) {
+        // Convert the plaintext to a binary buffer to be encrypted
+        const plainBytes = encoder.encode(message);
+
+        // Encrypt the plaintext with the AES key
+        const cipherBytes = await crypto.subtle.encrypt(
+          { name: AES_MODE, iv: encoder.encode(iv) },
+          aesKey,
+          plainBytes
+        );
+        encryptedMessages.push(cipherBytes)
+      }
+
+      return { key: bytesToHex(keyBytes), encryptedMessages };
     }
 
     // Decrypt the ciphertext using AES-GCM with supplied key and Initialization
@@ -453,23 +465,36 @@
     }
 
     // Setup a WebSocket connection to the server and relay the encrypted message
-    function relayMessage(channelId, message, { onOpen, onPeerReady, onPeerReceived, onFinish, onFailure }) {
+    function relayMessages(channelId, messages, { onOpen, onPeerReady, onPeerReceived, onFinish, onFailure }) {
+      // A simple state machine to track the state of the connection. This helps
+      // coordinate between multiple receivers. The states are: ready, sending,
+      // done.
+      let state = 'sender.ready';
+
       const ws = connectRelay(channelId);
 
       if (onOpen) ws.addEventListener('open', () => onOpen(ws));
 
-      ws.addEventListener('message', (event) => {
-        switch (event.data) {
-          case 'ready':
+      ws.addEventListener('message', ({ data }) => {
+        switch (`${state} : ${data}`) {
+          // We are waiting and the peer is ready.
+          case 'sender.ready : receiver.ready':
             if (onPeerReady) onPeerReady()
-            ws.send(message)
+            state = 'sender.sending'
+            ws.send(state)
+            messages.forEach(m => ws.send(m))
+            state = 'sender.done'
+            ws.send(state)
             break;
-          case 'received':
+          // We are done and the peer is fone.
+          case 'sender.done : receiver.done':
             if (onPeerReceived) onPeerReceived()
+            state = 'sender.ready'
+            ws.send(state)
             break;
+
           default:
-            ws.close(1007, 'Unknown request')
-            return;
+            console.info("Ignored message:", { state, data })
         }
       });
       ws.addEventListener('close', (event) => event.code === 1000 ? onFinish(event) : onFailure(event));
@@ -478,22 +503,54 @@
     }
 
     // Setup a WebSocket connection to the server and connect to the supplied
-    // channel. The only message that is expected is the encrypted message.
-    function receiveMessage(channelId, { onOpen, onSuccess, onFailure }) {
+    // channel.
+    function receiveMessages(channelId, { onOpen, onReceive, onSuccess, onFailure }) {
+      // Since we can have multiple clients connected to the same channel, we
+      // need a simple state machine so we don't process messages intended for
+      // other clients. Possible states are: ready, receiving, done.
+      let state = 'receiver.ready';
+      let timerId = null;
+
       const ws = connectRelay(channelId);
 
       ws.addEventListener('open', () => {
         if (onOpen) onOpen(ws)
-        ws.send('ready')
-        // Timeout after 30 seconds
-        setTimeout(() => ws.close(4000, 'Timed out'), 30000)
+        ws.send(state)
+        // Timeout after 5 seconds
+        timerId = setTimeout(() => ws.close(4000, 'No response from sender'), 5000)
       });
+      // Binary frames are encrypted messages, text frames are status messages
       ws.addEventListener('message', ({ data }) => {
-        onSuccess(data)
-        ws.send('received')
-        ws.close(1000, 'OK')
+        clearTimeout(timerId)
+        if (typeof data === 'string') {
+          switch (`${state} : ${data}`) {
+            // Sender has become ready
+            case 'receiver.ready : sender.ready':
+              ws.send(state)
+              break;
+            // Sender is about to send messages
+            case 'receiver.ready : sender.sending':
+              state = 'receiver.receiving'
+              break;
+            // Sender has finished sending messages
+            case 'receiver.receiving : sender.done':
+              ws.send('receiver.done')
+              onSuccess()
+              ws.close(1000, 'OK')
+              break;
+            default:
+              console.info("Ignored message:", { state, data })
+          }
+        } else {
+          // Received an encrypted message
+          if (state === 'receiver.receiving') onReceive(data);
+        }
+        timerId = setTimeout(() => ws.close(4000, 'Timed out'), 10000)
       });
-      ws.addEventListener('close', (event) => event.code === 1000 ? null : onFailure(event));
+      ws.addEventListener('close', (event) => {
+        clearTimeout(timerId)
+        event.code === 1000 ? null : onFailure(event)
+      });
       ws.addEventListener('error', (event) => onFailure(event));
     }
 
