@@ -454,7 +454,7 @@
 
     // Setup a WebSocket connection to the server and relay the encrypted message
     function relayMessage(channelId, message, { onOpen, onPeerReady, onPeerReceived, onFinish, onFailure }) {
-      const ws = connectRelay({ 'channel_id': channelId });
+      const ws = connectRelay(channelId);
 
       if (onOpen) ws.addEventListener('open', () => onOpen(ws));
 
@@ -480,7 +480,7 @@
     // Setup a WebSocket connection to the server and connect to the supplied
     // channel. The only message that is expected is the encrypted message.
     function receiveMessage(channelId, { onOpen, onSuccess, onFailure }) {
-      const ws = connectRelay({ 'channel_id': channelId, 'existing': 'true' });
+      const ws = connectRelay(channelId);
 
       ws.addEventListener('open', () => {
         if (onOpen) onOpen(ws)
@@ -497,9 +497,8 @@
       ws.addEventListener('error', (event) => onFailure(event));
     }
 
-    function connectRelay(params) {
-      const query = new URLSearchParams(params);
-      const ws = new WebSocket(`${WEBSOCKET_URL}?${query.toString()}`);
+    function connectRelay(channelId) {
+      const ws = new WebSocket(`${WEBSOCKET_ORIGIN}/${channelId}`);
 
       // Debugging
       ws.addEventListener('open', (event) => console.debug('Connected to server', { event }));
