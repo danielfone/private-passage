@@ -316,7 +316,7 @@
       })
     }
 
-    async function configureRelay(id, encryptedMessages, key) {
+    function configureRelay(id, encryptedMessages, key) {
       reconnectButton.hidden = true;
       sendStatusMessage.innerHTML = "Connecting to relay... <span class='loading indicator'></span>"
       return relayMessages(id, encryptedMessages, {
