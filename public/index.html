@@ -169,11 +169,8 @@
   </footer>
 
   <script type="module">
-    const MAX_FILE_SIZE = 64 * 1024 * 1024; // 64 MiB
-    // const WEBSOCKET_URL = "wss://relay.privatepassage.io/ws"
-    // For development
-    // const WEBSOCKET_URL = window.location.protocol.replace("http", "ws") + "//" + window.location.host + "/ws";
-    const WEBSOCKET_ORIGIN = "wss://proud-moth-14.deno.dev"
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MiB
+    const WEBSOCKET_ORIGIN = "wss://websocket-relay.privatepassage.io"
 
     const sendContainer = document.getElementById("send-container");
     const receiveContainer = document.getElementById("receive-container");
